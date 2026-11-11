@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">Karoo Lupine Piko</string>
+    <string name="hello_karoo">Hallo Karoo!</string>
+    <string name="extension_name">Karoo Lupine Piko</string>
+    <string name="status_connected">Karoo verbunden</string>
+    <string name="status_disconnected">Karoo getrennt</string>
+    <string name="lamp_connected">Piko verbunden</string>
+    <string name="lamp_disconnected">Piko getrennt</string>
+    <string name="quick_dim_action_dim">ABBLENDEN (GEGENVERKEHR)</string>
+    <string name="quick_dim_action_restore">FERNLICHT</string>
+    <string name="action_cycle_mode">Modus wechseln</string>
+    <string name="action_power_toggle">Ein / Aus</string>
+    <string name="section_modes">Leuchtstufen</string>
+    <string name="mode_off">Aus (0W)</string>
+    <string name="mode_dimmed">Gedimmt (0,3W)</string>
+    <string name="mode_diffuse">Diffus (2,1W)</string>
+    <string name="mode_low">Niedrig (2,0W)</string>
+    <string name="mode_medium">Mittel (8,5W)</string>
+    <string name="mode_high">Hoch (13W)</string>
+    <string name="mode_max">Maximal (22W)</string>
+    <string name="telemetry_format">Akku: %1$.2f V • Strom: %2$.2f A • Temp: %3$.0f °C</string>
+</resources>
