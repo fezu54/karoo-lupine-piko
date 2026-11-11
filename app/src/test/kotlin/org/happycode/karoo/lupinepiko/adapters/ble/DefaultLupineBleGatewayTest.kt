@@ -3,6 +3,7 @@ package org.happycode.karoo.lupinepiko.adapters.ble
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import org.happycode.karoo.lupinepiko.domain.LightMode
+import org.happycode.karoo.lupinepiko.domain.LightState
 import org.happycode.karoo.lupinepiko.domain.LightTelemetry
 import org.happycode.karoo.lupinepiko.domain.LupineModel
 
@@ -56,6 +57,23 @@ class DefaultLupineBleGatewayTest : ShouldSpec({
 
             // then
             gateway.state.value.currentMode shouldBe LightMode.OFF
+            gateway.state.value.previousBrightMode shouldBe LightMode.HIGH
+        }
+
+        should("retain previous bright mode when switching from bright mode to non bright mode") {
+            // given
+            val gateway = DefaultLupineBleGateway(
+                initialState = LightState(
+                    currentMode = LightMode.HIGH,
+                    previousBrightMode = LightMode.MAX,
+                ),
+            )
+
+            // when
+            gateway.applyMode(LightMode.DIMMED)
+
+            // then
+            gateway.state.value.currentMode shouldBe LightMode.DIMMED
             gateway.state.value.previousBrightMode shouldBe LightMode.HIGH
         }
     }
