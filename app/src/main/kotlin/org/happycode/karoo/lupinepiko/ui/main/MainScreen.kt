@@ -123,7 +123,7 @@ fun MainScreenContent(
                     .fillMaxWidth()
                     .height(72.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isCurrentlyBright) colors.warning else colors.success,
+                    containerColor = if (isCurrentlyBright) colors.statusWarning else colors.statusGood,
                 ),
             ) {
                 Text(

@@ -32,7 +32,11 @@ class DefaultLupineBleGateway(
         _state.update { current ->
             current.copy(
                 currentMode = mode,
-                previousBrightMode = if (mode.isBright) mode else current.previousBrightMode,
+                previousBrightMode = when {
+                    mode.isBright -> mode
+                    current.currentMode.isBright -> current.currentMode
+                    else -> current.previousBrightMode
+                },
             )
         }
         _state.value
@@ -66,6 +70,10 @@ class DefaultLupineBleGateway(
                 isConnected = true,
                 telemetry = telemetry,
                 currentMode = if (telemetry.isLampOff) LightMode.OFF else current.currentMode,
+                previousBrightMode = when {
+                    telemetry.isLampOff && current.currentMode.isBright -> current.currentMode
+                    else -> current.previousBrightMode
+                },
             )
         }
     }

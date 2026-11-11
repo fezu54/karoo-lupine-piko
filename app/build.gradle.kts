@@ -20,12 +20,20 @@ android {
         versionName = (project.findProperty("versionName") as? String) ?: "1.0"
         buildConfigField("String", "VERSION_NAME", "\"${versionName}\"")
     }
-    signingConfigs {
-        create("release") {
-            storeFile = file("${System.getProperty("user.home")}/.keystore/karoo-lupine-keystore.jks")
-            storePassword = System.getenv("STORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
+    val keystoreFile = file("${System.getProperty("user.home")}/.keystore/karoo-lupine-piko.jks")
+    val hasReleaseSigning = keystoreFile.exists() &&
+        System.getenv("STORE_PASSWORD") != null &&
+        System.getenv("KEY_ALIAS") != null &&
+        System.getenv("KEY_PASSWORD") != null
+
+    if (hasReleaseSigning) {
+        signingConfigs {
+            create("release") {
+                storeFile = keystoreFile
+                storePassword = System.getenv("STORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
         }
     }
 
@@ -33,7 +41,9 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("release")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
