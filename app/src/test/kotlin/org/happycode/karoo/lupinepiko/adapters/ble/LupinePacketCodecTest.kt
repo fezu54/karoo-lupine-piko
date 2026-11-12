@@ -33,6 +33,11 @@ class LupinePacketCodecTest : ShouldSpec({
                 softwareRevision = 4,
                 model = LupineModel.PIKO_R_2019,
             )
+            val lowBytes = LupinePacketCodec.encodeDirectMode(
+                mode = LightMode.LOW,
+                softwareRevision = 4,
+                model = LupineModel.PIKO_R_2019,
+            )
             val offBytes = LupinePacketCodec.encodeDirectMode(
                 mode = LightMode.OFF,
                 softwareRevision = 4,
@@ -41,7 +46,8 @@ class LupinePacketCodecTest : ShouldSpec({
 
             // then
             maxBytes shouldBe byteArrayOf(0x6D, 0x26, 0x04, 0xE8.toByte(), 0x41)
-            dimmedBytes shouldBe byteArrayOf(0x6D, 0x26, 0x04, 0x03, 0x41)
+            dimmedBytes shouldBe byteArrayOf(0x6D, 0x26, 0x04, 0x06, 0x42)
+            lowBytes shouldBe byteArrayOf(0x6D, 0x26, 0x04, 0x12, 0x41)
             offBytes shouldBe byteArrayOf(0x74, 0x31)
         }
 
@@ -64,8 +70,8 @@ class LupinePacketCodecTest : ShouldSpec({
             )
 
             // then
-            classicBytes shouldBe byteArrayOf(0x6D, 0x50, 0x02, 15, 0x41, 0x00)
-            blika2Bytes shouldBe byteArrayOf(0x6D, 0x51, 0x03, 0x90.toByte(), 0x41, 0x00)
+            classicBytes shouldBe byteArrayOf(0x6D, 0x50, 0x02, 15, 0x42, 0x00)
+            blika2Bytes shouldBe byteArrayOf(0x6D, 0x51, 0x03, 0x8B.toByte(), 0x41, 0x00)
             alphaBytes shouldBe byteArrayOf(0x6D, 0x60, 0x00, 0xE8.toByte(), 0x01, 0x00)
         }
     }

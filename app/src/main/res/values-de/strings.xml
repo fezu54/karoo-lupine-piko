@@ -12,12 +12,12 @@
     <string name="action_power_toggle">Ein / Aus</string>
     <string name="section_modes">Leuchtstufen</string>
     <string name="mode_off">Aus (0W)</string>
-    <string name="mode_dimmed">Gedimmt (0,3W)</string>
+    <string name="mode_dimmed">Gedimmt (0,5W)</string>
     <string name="mode_diffuse">Diffus (2,1W)</string>
-    <string name="mode_low">Niedrig (2,0W)</string>
-    <string name="mode_medium">Mittel (8,5W)</string>
-    <string name="mode_high">Hoch (13W)</string>
-    <string name="mode_max">Maximal (22W)</string>
+    <string name="mode_low">Niedrig (1,5W)</string>
+    <string name="mode_medium">Mittel (5W)</string>
+    <string name="mode_high">Hoch (12W)</string>
+    <string name="mode_max">Maximal (20W)</string>
     <string name="telemetry_format">Akku: %1$.2f V • Strom: %2$.2f A • Temp: %3$.0f °C</string>
     <string name="section_pairing">Lampenkopplung</string>
     <string name="paired_lamp_format">In Karoo gekoppelt: %1$s</string>

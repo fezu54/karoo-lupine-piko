@@ -52,16 +52,17 @@ class LupineTilePresentationTest : ShouldSpec({
         val lowModel = LupineControlTileModel.from(state = lowState, gridSize = 30 to 15)
 
         // then
-        maxModel.header.modeWithWattsLabel shouldBe "MAX 22W"
+        maxModel.header.modeWithWattsLabel shouldBe "MAX 20W"
         maxModel.header.batteryVoltageLabel shouldBe "8.1V"
         maxModel.header.batteryStatus shouldBe BatteryLevelStatus.GOOD
         maxModel.header.beamStatus shouldBe TileBeamStatus.HIGH_BEAM
 
-        dimModel.header.modeWithWattsLabel shouldBe "DIM 0.3W"
+        dimModel.header.modeWithWattsLabel shouldBe "DIM 0.5W"
         dimModel.header.batteryVoltageLabel shouldBe "7.1V"
         dimModel.header.batteryStatus shouldBe BatteryLevelStatus.MEDIUM
         dimModel.header.beamStatus shouldBe TileBeamStatus.DIMMED
 
+        lowModel.header.modeWithWattsLabel shouldBe "LOW 1.5W"
         lowModel.header.beamStatus shouldBe TileBeamStatus.ACTIVE
     }
 
@@ -88,7 +89,7 @@ class LupineTilePresentationTest : ShouldSpec({
         disconnected.header.batteryStatus shouldBe BatteryLevelStatus.UNKNOWN
         disconnected.header.beamStatus shouldBe TileBeamStatus.DISCONNECTED
         preview.header.isConnected shouldBe true
-        preview.header.modeWithWattsLabel shouldBe "MAX 22W"
+        preview.header.modeWithWattsLabel shouldBe "MAX 20W"
         preview.header.beamStatus shouldBe TileBeamStatus.HIGH_BEAM
     }
 
