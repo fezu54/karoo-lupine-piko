@@ -8,4 +8,9 @@
     <color name="karoo_battery_low">#FFEF5350</color>
     <color name="karoo_status_ok">#FF66BB6A</color>
     <color name="karoo_status_warn">#FFEF5350</color>
+    <color name="karoo_button_surface">#FF262626</color>
+    <color name="karoo_segment_inactive">#FF2C2C2C</color>
+    <color name="karoo_segment_active">#FF66BB6A</color>
+    <color name="karoo_segment_high_beam">#FFFFA726</color>
+    <color name="karoo_segment_text_on_active">#FF000000</color>
 </resources>
