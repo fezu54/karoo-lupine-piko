@@ -19,4 +19,8 @@
     <string name="mode_high">High (13W)</string>
     <string name="mode_max">Max (22W)</string>
     <string name="telemetry_format">Battery: %1$.2f V • Current: %2$.2f A • Temp: %3$.0f °C</string>
+    <string name="section_pairing">Lamp Pairing</string>
+    <string name="paired_lamp_format">Paired in Karoo: %1$s</string>
+    <string name="no_lamp_paired">No Lupine lamp paired in Karoo</string>
+    <string name="pairing_instructions">Open Sensors in the Karoo settings, add a new sensor and select your Lupine lamp.</string>
 </resources>
