@@ -73,7 +73,7 @@ class LupineRemoteViewsRendererTest : ShouldSpec({
 
         // then
         capturedLayoutId shouldBe R.layout.remote_lupine_control_wide
-        verify { remoteViews.setTextViewText(R.id.lupine_mode_text, "MAX 22W") }
+        verify { remoteViews.setTextViewText(R.id.lupine_mode_text, "MAX 20W") }
         verify { remoteViews.setTextViewText(R.id.lupine_status_label, "HIGH BEAM") }
         verify { remoteViews.setTextViewText(R.id.lupine_battery_text, "8.1V") }
         verify { remoteViews.setInt(R.id.lupine_high_beam_icon, "setColorFilter", 0x111111) }
@@ -99,7 +99,7 @@ class LupineRemoteViewsRendererTest : ShouldSpec({
 
         // then
         capturedLayoutId shouldBe R.layout.remote_lupine_control_tall
-        verify { remoteViews.setTextViewText(R.id.lupine_mode_text, "DIM 0.3W") }
+        verify { remoteViews.setTextViewText(R.id.lupine_mode_text, "DIM 0.5W") }
         verify { remoteViews.setTextViewText(R.id.lupine_status_label, "DIMMED") }
         verify { remoteViews.setInt(R.id.lupine_high_beam_icon, "setColorFilter", 0x222222) }
     }
@@ -131,7 +131,7 @@ class LupineRemoteViewsRendererTest : ShouldSpec({
 
         // then
         capturedLayoutId shouldBe R.layout.remote_lupine_brightness_compact
-        verify { remoteViews.setTextViewText(R.id.lupine_mode_text, "MED 8.5W") }
+        verify { remoteViews.setTextViewText(R.id.lupine_mode_text, "MED 5W") }
         verify { remoteViews.setProgressBar(R.id.lupine_brightness_progress, 100, 60, false) }
         verify { remoteViews.setOnClickPendingIntent(R.id.lupine_btn_step_down, downIntent) }
         verify { remoteViews.setOnClickPendingIntent(R.id.lupine_btn_step_up, upIntent) }
