@@ -40,6 +40,17 @@
                 android:name="io.hammerhead.karooext.EXTENSION_INFO"
                 android:resource="@xml/extension_info" />
         </service>
+
+        <receiver
+            android:name="org.happycode.karoo.lupinepiko.extension.LupineTileActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="org.happycode.karoo.lupinepiko.action.QUICK_DIM_TOGGLE" />
+                <action android:name="org.happycode.karoo.lupinepiko.action.STEP_BRIGHTNESS_UP" />
+                <action android:name="org.happycode.karoo.lupinepiko.action.STEP_BRIGHTNESS_DOWN" />
+                <action android:name="org.happycode.karoo.lupinepiko.action.SET_LIGHT_MODE" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

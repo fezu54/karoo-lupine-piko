@@ -6,6 +6,7 @@ import org.happycode.karoo.lupinepiko.application.CycleLightModeUseCase
 import org.happycode.karoo.lupinepiko.application.LightConfigRepository
 import org.happycode.karoo.lupinepiko.application.QuickDimToggleUseCase
 import org.happycode.karoo.lupinepiko.application.SetLightModeUseCase
+import org.happycode.karoo.lupinepiko.application.StepBrightnessUseCase
 import org.happycode.karoo.lupinepiko.application.TogglePowerUseCase
 
 object LupineServiceRegistry {
@@ -18,6 +19,10 @@ object LupineServiceRegistry {
         configRepository = configRepository,
     )
     val cycleLightMode: CycleLightModeUseCase = CycleLightModeUseCase(
+        gateway = gateway,
+        configRepository = configRepository,
+    )
+    val stepBrightness: StepBrightnessUseCase = StepBrightnessUseCase(
         gateway = gateway,
         configRepository = configRepository,
     )

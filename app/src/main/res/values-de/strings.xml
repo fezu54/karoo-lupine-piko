@@ -23,4 +23,18 @@
     <string name="paired_lamp_format">In Karoo gekoppelt: %1$s</string>
     <string name="no_lamp_paired">Keine Lupine-Lampe in Karoo gekoppelt</string>
     <string name="pairing_instructions">Öffne in den Karoo-Einstellungen die Sensoren, füge einen neuen Sensor hinzu und wähle deine Lupine-Lampe.</string>
+    <string name="data_type_light_control_name">Lupine Lichtsteuerung</string>
+    <string name="data_type_light_control_description">Leuchtstufe, Akkustatus und Abblenden per Fingertipp</string>
+    <string name="data_type_brightness_bar_name">Lupine Helligkeitsleiste</string>
+    <string name="data_type_brightness_bar_description">Interaktive Helligkeitsleiste und +/- Stufensteuerung</string>
+    <string name="tile_status_high_beam">FERNLICHT</string>
+    <string name="tile_status_dimmed">ABGEBLENDET</string>
+    <string name="tile_status_active">EIN</string>
+    <string name="tile_status_off">AUS</string>
+    <string name="tile_status_disconnected">GETRENNT</string>
+    <string name="tile_battery_placeholder">--.-V</string>
+    <string name="tile_step_down_symbol">-</string>
+    <string name="tile_step_up_symbol">+</string>
+    <string name="tile_step_down_cd">Helligkeit verringern</string>
+    <string name="tile_step_up_cd">Helligkeit erhöhen</string>
 </resources>

@@ -5,4 +5,18 @@
     id="karoo-lupine-piko"
     scansDevices="true">
 
+    <DataType
+        description="@string/data_type_light_control_description"
+        displayName="@string/data_type_light_control_name"
+        graphical="true"
+        icon="@drawable/ic_high_beam"
+        typeId="lupine-light-control" />
+
+    <DataType
+        description="@string/data_type_brightness_bar_description"
+        displayName="@string/data_type_brightness_bar_name"
+        graphical="true"
+        icon="@drawable/ic_brightness_bar"
+        typeId="lupine-brightness-bar" />
+
 </ExtensionInfo>
