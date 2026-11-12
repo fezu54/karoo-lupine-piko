@@ -12,6 +12,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -30,11 +32,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.models.SavedDevices
 import kotlinx.coroutines.launch
 import org.happycode.karoo.lupinepiko.R
 import org.happycode.karoo.lupinepiko.domain.LightMode
 import org.happycode.karoo.lupinepiko.domain.LightState
 import org.happycode.karoo.lupinepiko.extension.LupineServiceRegistry
+import org.happycode.karoo.lupinepiko.extension.PairedLampAddress
 import org.happycode.karoo.lupinepiko.theme.lupinePikoColors
 
 @Composable
@@ -43,13 +47,21 @@ fun MainScreen() {
     val karooSystem = remember { KarooSystemService(context) }
     val coroutineScope = rememberCoroutineScope()
     var connected by remember { mutableStateOf(false) }
+    var pairedAddress by remember { mutableStateOf<String?>(null) }
     val lightState by LupineServiceRegistry.gateway.state.collectAsState()
 
     DisposableEffect(Unit) {
+        var savedDevicesConsumerId: String? = null
         karooSystem.connect { isConnected ->
             connected = isConnected
+            if (isConnected && savedDevicesConsumerId == null) {
+                savedDevicesConsumerId = karooSystem.addConsumer<SavedDevices> { saved ->
+                    pairedAddress = PairedLampAddress.from(saved.devices.map { it.id })
+                }
+            }
         }
         onDispose {
+            savedDevicesConsumerId?.let { karooSystem.removeConsumer(it) }
             karooSystem.disconnect()
         }
     }
@@ -57,6 +69,7 @@ fun MainScreen() {
     MainScreenContent(
         connected = connected,
         lightState = lightState,
+        pairedAddress = pairedAddress,
         onQuickDimToggle = {
             coroutineScope.launch { LupineServiceRegistry.quickDimToggle() }
         },
@@ -76,6 +89,7 @@ fun MainScreen() {
 fun MainScreenContent(
     connected: Boolean,
     lightState: LightState = LightState(),
+    pairedAddress: String? = null,
     onQuickDimToggle: () -> Unit = {},
     onCycleMode: () -> Unit = {},
     onTogglePower: () -> Unit = {},
@@ -160,6 +174,8 @@ fun MainScreenContent(
                 }
             }
 
+            PairingCard(pairedAddress = pairedAddress)
+
             Text(
                 text = stringResource(R.string.section_modes),
                 style = MaterialTheme.typography.titleSmall,
@@ -183,6 +199,38 @@ fun MainScreenContent(
                 ) {
                     Text(text = stringResource(mode.labelResId()))
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PairingCard(pairedAddress: String?) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.section_pairing),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = pairedAddress
+                    ?.let { stringResource(R.string.paired_lamp_format, it) }
+                    ?: stringResource(R.string.no_lamp_paired),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            if (pairedAddress == null) {
+                Text(
+                    text = stringResource(R.string.pairing_instructions),
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
         }
     }
