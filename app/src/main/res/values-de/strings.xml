@@ -19,4 +19,8 @@
     <string name="mode_high">Hoch (13W)</string>
     <string name="mode_max">Maximal (22W)</string>
     <string name="telemetry_format">Akku: %1$.2f V • Strom: %2$.2f A • Temp: %3$.0f °C</string>
+    <string name="section_pairing">Lampenkopplung</string>
+    <string name="paired_lamp_format">In Karoo gekoppelt: %1$s</string>
+    <string name="no_lamp_paired">Keine Lupine-Lampe in Karoo gekoppelt</string>
+    <string name="pairing_instructions">Öffne in den Karoo-Einstellungen die Sensoren, füge einen neuen Sensor hinzu und wähle deine Lupine-Lampe.</string>
 </resources>

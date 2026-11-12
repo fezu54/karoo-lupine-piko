@@ -52,7 +52,7 @@ class LupinePikoExtension(
     private val quickDimToggleUseCase: QuickDimToggleUseCase = LupineServiceRegistry.quickDimToggle,
     private val cycleLightModeUseCase: CycleLightModeUseCase = LupineServiceRegistry.cycleLightMode,
     private val togglePowerUseCase: TogglePowerUseCase = LupineServiceRegistry.togglePower,
-) : KarooExtension(extension = "karoo-lupine-piko", version = BuildConfig.VERSION_NAME) {
+) : KarooExtension(extension = EXTENSION_ID, version = BuildConfig.VERSION_NAME) {
 
     @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT])
     override fun startScan(emitter: Emitter<Device>) {
@@ -318,6 +318,7 @@ class LupinePikoExtension(
     }
 
     companion object {
+        const val EXTENSION_ID = "karoo-lupine-piko"
         private const val TAG = "PIKO_SCAN"
         private const val UID_PREFIX = "piko-"
         private const val DEFAULT_DISPLAY_NAME = "Lupine Piko"
