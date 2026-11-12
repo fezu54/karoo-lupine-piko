@@ -19,4 +19,22 @@
     <string name="mode_high">High (13W)</string>
     <string name="mode_max">Max (22W)</string>
     <string name="telemetry_format">Battery: %1$.2f V • Current: %2$.2f A • Temp: %3$.0f °C</string>
+    <string name="section_pairing">Lamp Pairing</string>
+    <string name="paired_lamp_format">Paired in Karoo: %1$s</string>
+    <string name="no_lamp_paired">No Lupine lamp paired in Karoo</string>
+    <string name="pairing_instructions">Open Sensors in the Karoo settings, add a new sensor and select your Lupine lamp.</string>
+    <string name="data_type_light_control_name">Lupine Light Control</string>
+    <string name="data_type_light_control_description">Light mode, battery status, and single-tap Quick-Dim toggle</string>
+    <string name="data_type_brightness_bar_name">Lupine Brightness Bar</string>
+    <string name="data_type_brightness_bar_description">Interactive brightness bar and +/- step control</string>
+    <string name="tile_status_high_beam">HIGH BEAM</string>
+    <string name="tile_status_dimmed">DIMMED</string>
+    <string name="tile_status_active">ON</string>
+    <string name="tile_status_off">OFF</string>
+    <string name="tile_status_disconnected">DISCONNECTED</string>
+    <string name="tile_battery_placeholder">--.-V</string>
+    <string name="tile_step_down_symbol">-</string>
+    <string name="tile_step_up_symbol">+</string>
+    <string name="tile_step_down_cd">Decrease brightness</string>
+    <string name="tile_step_up_cd">Increase brightness</string>
 </resources>

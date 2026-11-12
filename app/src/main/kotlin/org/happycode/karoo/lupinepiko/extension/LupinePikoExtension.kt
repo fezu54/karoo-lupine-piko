@@ -20,6 +20,7 @@ import android.os.ParcelUuid
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.content.getSystemService
+import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.extension.KarooExtension
 import io.hammerhead.karooext.internal.Emitter
 import io.hammerhead.karooext.models.ConnectionStatus
@@ -52,7 +53,26 @@ class LupinePikoExtension(
     private val quickDimToggleUseCase: QuickDimToggleUseCase = LupineServiceRegistry.quickDimToggle,
     private val cycleLightModeUseCase: CycleLightModeUseCase = LupineServiceRegistry.cycleLightMode,
     private val togglePowerUseCase: TogglePowerUseCase = LupineServiceRegistry.togglePower,
-) : KarooExtension(extension = "karoo-lupine-piko", version = BuildConfig.VERSION_NAME) {
+) : KarooExtension(extension = EXTENSION_ID, version = BuildConfig.VERSION_NAME) {
+
+    override val types: List<DataTypeImpl> by lazy {
+        listOf(
+            LupineGraphicalDataType(
+                extension = extension,
+                typeId = LupineGraphicalDataType.TYPE_LIGHT_CONTROL,
+                gateway = gateway,
+                scope = defaultScope,
+                renderer = LupineControlRemoteViewsRenderer(),
+            ),
+            LupineGraphicalDataType(
+                extension = extension,
+                typeId = LupineGraphicalDataType.TYPE_BRIGHTNESS_BAR,
+                gateway = gateway,
+                scope = defaultScope,
+                renderer = LupineBrightnessBarRemoteViewsRenderer(),
+            ),
+        )
+    }
 
     @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT])
     override fun startScan(emitter: Emitter<Device>) {
@@ -102,7 +122,7 @@ class LupinePikoExtension(
                         Device(
                             extension = extension,
                             uid = "$UID_PREFIX${deviceAddress.uppercase()}",
-                            dataTypes = emptyList(),
+                            dataTypes = types.map { it.dataTypeId },
                             displayName = matchedName,
                         )
                     )
@@ -190,6 +210,10 @@ class LupinePikoExtension(
                 }
             }
         }
+    }
+
+    override fun onBonusAction(actionId: String) {
+        handleAction(actionId)
     }
 
     fun handleAction(actionId: String) {
@@ -318,6 +342,7 @@ class LupinePikoExtension(
     }
 
     companion object {
+        const val EXTENSION_ID = "karoo-lupine-piko"
         private const val TAG = "PIKO_SCAN"
         private const val UID_PREFIX = "piko-"
         private const val DEFAULT_DISPLAY_NAME = "Lupine Piko"

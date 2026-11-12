@@ -10,6 +10,7 @@ import android.bluetooth.le.ScanSettings
 import android.content.pm.PackageManager
 import android.util.Log
 import io.hammerhead.karooext.internal.Emitter
+import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.Device
 import io.hammerhead.karooext.models.DeviceEvent
 import io.kotest.core.spec.style.ShouldSpec
@@ -127,7 +128,23 @@ class LupinePikoExtensionTest : ShouldSpec({
         scanCallback.onScanResult(ScanSettings.CALLBACK_TYPE_ALL_MATCHES, result)
 
         // then
-        verify { emitter.onNext(match { it.uid == "piko-11:22:33:44:55:66" }) }
+        verify {
+            emitter.onNext(
+                match {
+                    it.uid == "piko-11:22:33:44:55:66" &&
+                        it.dataTypes == listOf(
+                            DataType.dataTypeId(
+                                LupinePikoExtension.EXTENSION_ID,
+                                LupineGraphicalDataType.TYPE_LIGHT_CONTROL,
+                            ),
+                            DataType.dataTypeId(
+                                LupinePikoExtension.EXTENSION_ID,
+                                LupineGraphicalDataType.TYPE_BRIGHTNESS_BAR,
+                            ),
+                        )
+                }
+            )
+        }
     }
 
     should("not emit device when scan result does not match Lupine Piko criteria") {
@@ -212,6 +229,22 @@ class LupinePikoExtensionTest : ShouldSpec({
         afterRestore shouldBe LightMode.MAX
         afterCycle shouldBe LightMode.DIMMED
         afterPowerOff shouldBe LightMode.OFF
+    }
+
+    should("expose light control and brightness bar graphical data types") {
+        // then
+        extension.types.map { it.typeId } shouldBe listOf(
+            LupineGraphicalDataType.TYPE_LIGHT_CONTROL,
+            LupineGraphicalDataType.TYPE_BRIGHTNESS_BAR,
+        )
+    }
+
+    should("delegate onBonusAction to handleAction") {
+        // when
+        extension.onBonusAction(LupinePikoExtension.ACTION_TOGGLE_DIM)
+
+        // then
+        gateway.state.value.currentMode shouldBe LightMode.DIMMED
     }
 
     should("parse MAC address from uid and match Lupine device names") {
