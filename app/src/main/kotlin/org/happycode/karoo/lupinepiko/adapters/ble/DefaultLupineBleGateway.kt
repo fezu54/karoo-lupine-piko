@@ -21,6 +21,12 @@ class DefaultLupineBleGateway(
         commandSender = sender
     }
 
+    fun clearCommandSender(expected: suspend (ByteArray) -> Unit) {
+        if (commandSender === expected) {
+            commandSender = {}
+        }
+    }
+
     override suspend fun applyMode(mode: LightMode): Result<LightState> = runCatching {
         val currentTelemetry = _state.value.telemetry
         val payload = LupinePacketCodec.encodeDirectMode(

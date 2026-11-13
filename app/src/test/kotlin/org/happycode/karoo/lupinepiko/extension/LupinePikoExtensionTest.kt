@@ -8,16 +8,17 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.pm.PackageManager
-import android.util.Log
 import io.hammerhead.karooext.internal.Emitter
+import io.hammerhead.karooext.models.ConnectionStatus
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.Device
 import io.hammerhead.karooext.models.DeviceEvent
+import io.hammerhead.karooext.models.OnConnectionStatus
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
 import io.mockk.slot
 import io.mockk.spyk
 import io.mockk.unmockkAll
@@ -26,14 +27,19 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import org.happycode.karoo.lupinepiko.adapters.ble.DefaultLupineBleGateway
+import org.happycode.karoo.lupinepiko.adapters.ble.LupineBleManager
+import org.happycode.karoo.lupinepiko.adapters.ble.LupinePacketCodec
 import org.happycode.karoo.lupinepiko.adapters.storage.SharedPrefsLightConfigRepository
 import org.happycode.karoo.lupinepiko.application.CycleLightModeUseCase
 import org.happycode.karoo.lupinepiko.application.QuickDimToggleUseCase
 import org.happycode.karoo.lupinepiko.application.TogglePowerUseCase
+import org.happycode.karoo.lupinepiko.domain.BleConnectionState
 import org.happycode.karoo.lupinepiko.domain.LightMode
 import org.happycode.karoo.lupinepiko.domain.LightState
 
@@ -43,20 +49,10 @@ class LupinePikoExtensionTest : ShouldSpec({
     lateinit var extension: LupinePikoExtension
     lateinit var gateway: DefaultLupineBleGateway
 
-    fun mockLogCalls() {
-        mockkStatic(Log::class)
-        every { Log.v(any<String>(), any<String>()) } returns 0
-        every { Log.d(any<String>(), any<String>()) } returns 0
-        every { Log.i(any<String>(), any<String>()) } returns 0
-        every { Log.w(any<String>(), any<String>()) } returns 0
-        every { Log.w(any<String>(), any<String>(), any<Throwable>()) } returns 0
-        every { Log.e(any<String>(), any<String>()) } returns 0
-        every { Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
-    }
-
     fun createTestExtension(
         bluetoothStateFlow: Flow<Boolean> = flowOf(true),
         scope: CoroutineScope = CoroutineScope(UnconfinedTestDispatcher()),
+        bleManagerFactory: (String, CoroutineScope) -> LupineBleManager = { _, _ -> mockk(relaxed = true) },
     ): LupinePikoExtension {
         gateway = DefaultLupineBleGateway(initialState = LightState(currentMode = LightMode.MAX))
         val configRepo = SharedPrefsLightConfigRepository()
@@ -64,6 +60,7 @@ class LupinePikoExtensionTest : ShouldSpec({
             defaultScope = scope,
             scanSettingsFactory = { mockk(relaxed = true) },
             bluetoothStateFlowFactory = { bluetoothStateFlow },
+            bleManagerFactory = bleManagerFactory,
             gateway = gateway,
             quickDimToggleUseCase = QuickDimToggleUseCase(gateway = gateway, configRepository = configRepo),
             cycleLightModeUseCase = CycleLightModeUseCase(gateway = gateway, configRepository = configRepo),
@@ -92,7 +89,6 @@ class LupinePikoExtensionTest : ShouldSpec({
     }
 
     beforeEach {
-        mockLogCalls()
         extension = createTestExtension()
     }
 
@@ -199,14 +195,143 @@ class LupinePikoExtensionTest : ShouldSpec({
         verify(exactly = 1) { scanner.stopScan(any<ScanCallback>()) }
     }
 
-    should("register cancellable when connectDevice is called") {
+    should("register cancellable and start bleManager when connectDevice is called") {
         // given
+        val bleManager = mockk<LupineBleManager>(relaxed = true) {
+            every { connectionState } returns MutableStateFlow(BleConnectionState.DISCONNECTED)
+            every { notificationsEnabled } returns MutableSharedFlow()
+            every { incomingData } returns MutableSharedFlow()
+        }
+        val extensionWithBle = createTestExtension(bleManagerFactory = { _, _ -> bleManager })
         val emitter = mockk<Emitter<DeviceEvent>>(relaxed = true)
 
         // when
-        extension.connectDevice("piko-11:22:33:44:55:66", emitter)
+        extensionWithBle.connectDevice("piko-11:22:33:44:55:66", emitter)
 
         // then
+        verify { emitter.setCancellable(any()) }
+        verify(exactly = 1) { bleManager.start() }
+    }
+
+    should("forward connection state telemetry and commands between bleManager gateway and emitter") {
+        runTest(UnconfinedTestDispatcher()) {
+            // given
+            val connectionStateFlow = MutableStateFlow(BleConnectionState.DISCONNECTED)
+            val notificationsEnabledFlow = MutableSharedFlow<Unit>()
+            val incomingDataFlow = MutableSharedFlow<ByteArray>()
+            val bleManager = mockk<LupineBleManager>(relaxed = true) {
+                every { connectionState } returns connectionStateFlow
+                every { notificationsEnabled } returns notificationsEnabledFlow
+                every { incomingData } returns incomingDataFlow
+            }
+            val extensionWithBle = createTestExtension(
+                scope = backgroundScope,
+                bleManagerFactory = { _, _ -> bleManager },
+            )
+            val emitter = mockk<Emitter<DeviceEvent>>(relaxed = true)
+            val cancelSlot = slot<() -> Unit>()
+            every { emitter.setCancellable(capture(cancelSlot)) } returns Unit
+
+            // when
+            extensionWithBle.connectDevice("piko-11:22:33:44:55:66", emitter)
+            connectionStateFlow.value = BleConnectionState.SEARCHING
+            connectionStateFlow.value = BleConnectionState.CONNECTED
+            notificationsEnabledFlow.emit(Unit)
+
+            val statusPacket = byteArrayOf(
+                0x74, 0x26, 0x05, 0x20, 0x04, 100, 0, 90,
+                116, 0, 125, 0, 1, 232.toByte(), 0, 0,
+            )
+            incomingDataFlow.emit(statusPacket)
+            gateway.applyMode(LightMode.DIMMED)
+
+            // then
+            verify { emitter.onNext(OnConnectionStatus(ConnectionStatus.SEARCHING)) }
+            verify { emitter.onNext(OnConnectionStatus(ConnectionStatus.CONNECTED)) }
+            gateway.state.value.isConnected shouldBe true
+            gateway.state.value.telemetry?.softwareRevision shouldBe 5
+            coVerify { bleManager.writeCommand(LupinePacketCodec.encodeStatusPoll()) }
+            coVerify {
+                bleManager.writeCommand(
+                    LupinePacketCodec.encodeDirectMode(
+                        mode = LightMode.DIMMED,
+                        softwareRevision = 5,
+                    ),
+                )
+            }
+
+            // when cancelled
+            cancelSlot.captured.invoke()
+
+            // then
+            verify(exactly = 1) { bleManager.stop() }
+            gateway.state.value.isConnected shouldBe false
+        }
+    }
+
+    should("not wipe newer connection state or command sender when older connectDevice is cancelled") {
+        runTest(UnconfinedTestDispatcher()) {
+            // given
+            val firstStateFlow = MutableStateFlow(BleConnectionState.DISCONNECTED)
+            val secondStateFlow = MutableStateFlow(BleConnectionState.DISCONNECTED)
+            val firstManager = mockk<LupineBleManager>(relaxed = true) {
+                every { connectionState } returns firstStateFlow
+                every { notificationsEnabled } returns MutableSharedFlow()
+                every { incomingData } returns MutableSharedFlow()
+            }
+            val secondManager = mockk<LupineBleManager>(relaxed = true) {
+                every { connectionState } returns secondStateFlow
+                every { notificationsEnabled } returns MutableSharedFlow()
+                every { incomingData } returns MutableSharedFlow()
+            }
+            var invocationCount = 0
+            val extensionWithBle = createTestExtension(
+                scope = backgroundScope,
+                bleManagerFactory = { _, _ ->
+                    invocationCount++
+                    if (invocationCount == 1) firstManager else secondManager
+                },
+            )
+            val firstEmitter = mockk<Emitter<DeviceEvent>>(relaxed = true)
+            val secondEmitter = mockk<Emitter<DeviceEvent>>(relaxed = true)
+            val firstCancelSlot = slot<() -> Unit>()
+            every { firstEmitter.setCancellable(capture(firstCancelSlot)) } returns Unit
+
+            // when
+            extensionWithBle.connectDevice("piko-11:22:33:44:55:66", firstEmitter)
+            extensionWithBle.connectDevice("piko-11:22:33:44:55:66", secondEmitter)
+            secondStateFlow.value = BleConnectionState.CONNECTED
+
+            firstCancelSlot.captured.invoke()
+            gateway.applyMode(LightMode.DIMMED)
+
+            // then
+            verify(exactly = 1) { firstManager.stop() }
+            verify(exactly = 0) { secondManager.stop() }
+            gateway.state.value.isConnected shouldBe true
+            coVerify(exactly = 0) { firstManager.writeCommand(any()) }
+            coVerify(exactly = 1) {
+                secondManager.writeCommand(LupinePacketCodec.encodeDirectMode(mode = LightMode.DIMMED))
+            }
+        }
+    }
+
+    should("ignore connectDevice when uid has no valid MAC address") {
+        // given
+        var factoryCalled = false
+        val extensionWithBle = createTestExtension(
+            bleManagerFactory = { _, _ ->
+                factoryCalled = true
+                mockk(relaxed = true)
+            },
+        )
+        val emitter = mockk<Emitter<DeviceEvent>>(relaxed = true)
+
+        // when
+        extensionWithBle.connectDevice("invalid-uid", emitter)
+
+        // then
+        factoryCalled shouldBe false
         verify { emitter.setCancellable(any()) }
     }
 

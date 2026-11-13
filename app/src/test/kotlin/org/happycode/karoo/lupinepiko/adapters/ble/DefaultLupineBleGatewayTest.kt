@@ -76,5 +76,32 @@ class DefaultLupineBleGatewayTest : ShouldSpec({
             gateway.state.value.currentMode shouldBe LightMode.DIMMED
             gateway.state.value.previousBrightMode shouldBe LightMode.HIGH
         }
+
+        should("clear command sender only when expected sender matches") {
+            // given
+            val firstSent = mutableListOf<ByteArray>()
+            val secondSent = mutableListOf<ByteArray>()
+            val firstSender: suspend (ByteArray) -> Unit = { firstSent.add(it) }
+            val secondSender: suspend (ByteArray) -> Unit = { secondSent.add(it) }
+            val gateway = DefaultLupineBleGateway()
+
+            gateway.setCommandSender(firstSender)
+            gateway.setCommandSender(secondSender)
+
+            // when
+            gateway.clearCommandSender(firstSender)
+            gateway.pollStatus()
+
+            // then
+            firstSent.size shouldBe 0
+            secondSent.size shouldBe 1
+
+            // when
+            gateway.clearCommandSender(secondSender)
+            gateway.pollStatus()
+
+            // then
+            secondSent.size shouldBe 1
+        }
     }
 })

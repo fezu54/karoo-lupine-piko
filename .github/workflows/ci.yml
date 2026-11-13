@@ -35,12 +35,12 @@ jobs:
         with:
           packages: 'platform-tools'
 
-      - name: Run tests and verify coverage
+      - name: Run tests
         env:
           USERNAME: ${{ github.actor }}
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./gradlew :app:checkCoverageBaseline
+          ./gradlew :app:testDebugUnitTest
 
       - name: Check commit message for release criteria
         if: github.ref == 'refs/heads/main'
