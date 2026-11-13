@@ -2,7 +2,7 @@ package org.happycode.karoo.lupinepiko.domain
 
 data class LightState(
     val currentMode: LightMode = LightMode.OFF,
-    val previousBrightMode: LightMode = LightMode.MAX,
+    val previousBrightMode: LightMode = LightMode.OFF,
     val isConnected: Boolean = false,
     val telemetry: LightTelemetry? = null,
 ) {

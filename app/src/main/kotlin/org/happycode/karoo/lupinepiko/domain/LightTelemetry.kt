@@ -10,4 +10,7 @@ data class LightTelemetry(
     val maxCurrentAmps: Double,
     val consumedAh: Double,
     val temperatureCelsius: Double,
-)
+) {
+    fun remainingBatteryPercent(capacity: BatteryCapacity = BatteryCapacity.DEFAULT): Int =
+        capacity.remainingPercent(consumedAh)
+}
