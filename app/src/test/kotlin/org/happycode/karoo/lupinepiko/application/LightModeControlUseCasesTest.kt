@@ -65,6 +65,43 @@ class LightModeControlUseCasesTest : ShouldSpec({
             // then
             result.currentMode shouldBe LightMode.MAX
         }
+
+        should("reflect updated high-beam and dimmed presets immediately when toggled") {
+            // given
+            val gateway = DefaultLupineBleGateway(
+                initialState = LightState(currentMode = LightMode.OFF),
+            )
+            val configRepo = SharedPrefsLightConfigRepository()
+            val quickDimToggle = QuickDimToggleUseCase(gateway, configRepository = configRepo)
+
+            // when
+            configRepo.updateHighBeamMode(LightMode.HIGH)
+            configRepo.updateDimmedMode(LightMode.DIFFUSE)
+            val turnedOn = quickDimToggle().getOrThrow()
+            val dimmed = quickDimToggle().getOrThrow()
+            val restored = quickDimToggle().getOrThrow()
+
+            // then
+            turnedOn.currentMode shouldBe LightMode.HIGH
+            dimmed.currentMode shouldBe LightMode.DIFFUSE
+            restored.currentMode shouldBe LightMode.HIGH
+        }
+
+        should("restore to configured high-beam preset when turning on from dimmed without prior bright mode") {
+            // given
+            val gateway = DefaultLupineBleGateway(
+                initialState = LightState(currentMode = LightMode.DIMMED),
+            )
+            val configRepo = SharedPrefsLightConfigRepository()
+            configRepo.updateHighBeamMode(LightMode.MEDIUM)
+            val quickDimToggle = QuickDimToggleUseCase(gateway, configRepository = configRepo)
+
+            // when
+            val result = quickDimToggle().getOrThrow()
+
+            // then
+            result.currentMode shouldBe LightMode.MEDIUM
+        }
     }
 
     context("CycleLightModeUseCase") {
@@ -76,13 +113,28 @@ class LightModeControlUseCasesTest : ShouldSpec({
                     cycleModes = listOf(LightMode.DIMMED, LightMode.MEDIUM, LightMode.MAX),
                 ),
             )
-            val cycleMode = CycleLightModeUseCase(gateway = gateway, configRepository = configRepo)
+            val cycleMode = CycleLightModeUseCase(gateway, configRepository = configRepo)
 
             // when & then
             cycleMode().getOrThrow().currentMode shouldBe LightMode.DIMMED
             cycleMode().getOrThrow().currentMode shouldBe LightMode.MEDIUM
             cycleMode().getOrThrow().currentMode shouldBe LightMode.MAX
             cycleMode().getOrThrow().currentMode shouldBe LightMode.DIMMED
+        }
+
+        should("reflect toggled cycle modes immediately when cycling") {
+            // given
+            val gateway = DefaultLupineBleGateway(initialState = LightState(currentMode = LightMode.OFF))
+            val configRepo = SharedPrefsLightConfigRepository()
+            configRepo.updateCycleModes(listOf(LightMode.DIFFUSE, LightMode.HIGH))
+            configRepo.toggleCycleMode(LightMode.MAX)
+            val cycleMode = CycleLightModeUseCase(gateway, configRepository = configRepo)
+
+            // when & then
+            cycleMode().getOrThrow().currentMode shouldBe LightMode.DIFFUSE
+            cycleMode().getOrThrow().currentMode shouldBe LightMode.HIGH
+            cycleMode().getOrThrow().currentMode shouldBe LightMode.MAX
+            cycleMode().getOrThrow().currentMode shouldBe LightMode.DIFFUSE
         }
     }
 

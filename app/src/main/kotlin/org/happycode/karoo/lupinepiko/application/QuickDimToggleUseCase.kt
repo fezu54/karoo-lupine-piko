@@ -11,9 +11,10 @@ class QuickDimToggleUseCase(
         val currentState = gateway.state.value
         val config = configRepository.config.value
 
-        val targetMode = when (currentState.currentMode) {
-            LightMode.OFF -> config.highBeamMode
-            config.dimmedMode -> currentState.previousBrightMode.takeIf { it.isBright } ?: config.highBeamMode
+        val targetMode = when {
+            currentState.currentMode == LightMode.OFF -> config.highBeamMode
+            currentState.currentMode == config.dimmedMode || currentState.isDimmedForOncoming ->
+                currentState.previousBrightMode.takeIf { it.isBright } ?: config.highBeamMode
             else -> config.dimmedMode
         }
 

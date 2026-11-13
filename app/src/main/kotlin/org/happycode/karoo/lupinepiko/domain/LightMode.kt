@@ -16,6 +16,9 @@ enum class LightMode(
     ;
 
     companion object {
+        val highBeamPresets: List<LightMode> = listOf(MAX, HIGH, MEDIUM)
+        val dimmedPresets: List<LightMode> = listOf(DIMMED, DIFFUSE)
+        val cyclableModes: List<LightMode> = listOf(DIMMED, DIFFUSE, LOW, MEDIUM, HIGH, MAX)
         val defaultCycleModes: List<LightMode> = listOf(DIMMED, LOW, MEDIUM, HIGH, MAX)
     }
 }

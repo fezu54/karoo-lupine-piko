@@ -7,12 +7,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.content.ContextCompat
+import org.happycode.karoo.lupinepiko.extension.LupineServiceRegistry
 import org.happycode.karoo.lupinepiko.theme.AppTheme
 import org.happycode.karoo.lupinepiko.ui.main.MainScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LupineServiceRegistry.initialize(this)
 
         requestNeededPermissions()
 

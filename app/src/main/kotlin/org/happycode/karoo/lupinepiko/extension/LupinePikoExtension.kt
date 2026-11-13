@@ -79,6 +79,7 @@ class LupinePikoExtension(
 
     override fun onCreate() {
         super.onCreate()
+        applicationContext?.let { LupineServiceRegistry.initialize(it) }
         if (Timber.treeCount == 0) {
             Timber.plant(Timber.DebugTree())
         }
