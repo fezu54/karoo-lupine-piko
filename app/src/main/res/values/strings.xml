@@ -1,11 +1,8 @@
 <resources>
     <string name="app_name">Karoo Lupine Piko</string>
-    <string name="hello_karoo">Hello Karoo!</string>
     <string name="extension_name">Karoo Lupine Piko</string>
     <string name="status_connected">Karoo Connected</string>
     <string name="status_disconnected">Karoo Disconnected</string>
-    <string name="lamp_connected">Piko Connected</string>
-    <string name="lamp_disconnected">Piko Disconnected</string>
     <string name="quick_dim_action_dim">DIM NOW (ONCOMING)</string>
     <string name="quick_dim_action_restore">HIGH BEAM</string>
     <string name="action_cycle_mode">Cycle Mode</string>

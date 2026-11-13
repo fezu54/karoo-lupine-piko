@@ -4,6 +4,7 @@ kotlin = "2.4.21"
 kover = "0.9.11"
 kable = "0.45.0"
 kotlinxCoroutines = "1.11.0"
+timber = "5.0.1"
 
 androidxCore = "1.19.1"
 androidxLifecycle = "2.11.0"
@@ -26,6 +27,7 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 [libraries]
 hammerhead-karoo-ext = { group = "io.hammerhead", name = "karoo-ext", version = "1.1.9" }
 kable-core = { module = "com.juul.kable:kable-core", version.ref = "kable" }
+timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }

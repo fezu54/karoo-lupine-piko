@@ -1,11 +1,8 @@
 <resources>
     <string name="app_name">Karoo Lupine Piko</string>
-    <string name="hello_karoo">Hallo Karoo!</string>
     <string name="extension_name">Karoo Lupine Piko</string>
     <string name="status_connected">Karoo verbunden</string>
     <string name="status_disconnected">Karoo getrennt</string>
-    <string name="lamp_connected">Piko verbunden</string>
-    <string name="lamp_disconnected">Piko getrennt</string>
     <string name="quick_dim_action_dim">ABBLENDEN (GEGENVERKEHR)</string>
     <string name="quick_dim_action_restore">FERNLICHT</string>
     <string name="action_cycle_mode">Modus wechseln</string>

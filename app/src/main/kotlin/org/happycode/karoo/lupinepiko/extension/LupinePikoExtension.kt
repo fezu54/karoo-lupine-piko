@@ -1,13 +1,7 @@
 package org.happycode.karoo.lupinepiko.extension
 
 import android.Manifest
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothGattCallback
-import android.bluetooth.BluetoothGattCharacteristic
-import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
-import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
@@ -17,7 +11,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.ParcelUuid
-import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.content.getSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
@@ -31,29 +24,39 @@ import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.happycode.karoo.lupinepiko.BuildConfig
 import org.happycode.karoo.lupinepiko.adapters.ble.DefaultLupineBleGateway
+import org.happycode.karoo.lupinepiko.adapters.ble.LupineBleManager
 import org.happycode.karoo.lupinepiko.adapters.ble.LupinePacketCodec
 import org.happycode.karoo.lupinepiko.application.CycleLightModeUseCase
 import org.happycode.karoo.lupinepiko.application.QuickDimToggleUseCase
 import org.happycode.karoo.lupinepiko.application.TogglePowerUseCase
+import org.happycode.karoo.lupinepiko.domain.BleConnectionState
+import timber.log.Timber
 
 class LupinePikoExtension(
-    private val defaultScope: CoroutineScope = CoroutineScope(Dispatchers.Main),
+    private val defaultScope: CoroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob()),
     private val scanSettingsFactory: () -> ScanSettings = {
         ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
     },
     private val bluetoothStateFlowFactory: (Context) -> Flow<Boolean> = { it.bluetoothStateFlow() },
+    private val bleManagerFactory: (String, CoroutineScope) -> LupineBleManager = { address, scope ->
+        LupineBleManager(address = address, scope = scope)
+    },
     private val gateway: DefaultLupineBleGateway = LupineServiceRegistry.gateway,
     private val quickDimToggleUseCase: QuickDimToggleUseCase = LupineServiceRegistry.quickDimToggle,
     private val cycleLightModeUseCase: CycleLightModeUseCase = LupineServiceRegistry.cycleLightMode,
     private val togglePowerUseCase: TogglePowerUseCase = LupineServiceRegistry.togglePower,
 ) : KarooExtension(extension = EXTENSION_ID, version = BuildConfig.VERSION_NAME) {
+
+    @Volatile
+    private var activeConnectionToken: Any? = null
 
     override val types: List<DataTypeImpl> by lazy {
         listOf(
@@ -74,9 +77,16 @@ class LupinePikoExtension(
         )
     }
 
+    override fun onCreate() {
+        super.onCreate()
+        if (Timber.treeCount == 0) {
+            Timber.plant(Timber.DebugTree())
+        }
+    }
+
     @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT])
     override fun startScan(emitter: Emitter<Device>) {
-        Log.d(TAG, "startScan() called")
+        Timber.tag(TAG).d("startScan() called")
         val job = Job(defaultScope.coroutineContext[Job])
         val scope = CoroutineScope(defaultScope.coroutineContext + job)
 
@@ -88,7 +98,7 @@ class LupinePikoExtension(
         }
 
         if (!hasScanPermission) {
-            Log.e(TAG, "startScan() failed: Missing BLUETOOTH_SCAN or ACCESS_FINE_LOCATION permission")
+            Timber.tag(TAG).e("startScan() failed: Missing BLUETOOTH_SCAN or ACCESS_FINE_LOCATION permission")
             emitter.setCancellable { job.cancel() }
             return
         }
@@ -100,7 +110,7 @@ class LupinePikoExtension(
                     Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
                         checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
                 if (!hasConnectPermission) {
-                    Log.w(TAG, "onScanResult(): Ignored result due to missing BLUETOOTH_CONNECT permission")
+                    Timber.tag(TAG).w("onScanResult(): Ignored result due to missing BLUETOOTH_CONNECT permission")
                     return
                 }
 
@@ -117,7 +127,7 @@ class LupinePikoExtension(
                 }
 
                 displayName?.let { matchedName ->
-                    Log.i(TAG, "Matched Lupine Piko: address=$deviceAddress, name=$matchedName")
+                    Timber.tag(TAG).i("Matched Lupine Piko: address=%s, name=%s", deviceAddress, matchedName)
                     emitter.onNext(
                         Device(
                             extension = extension,
@@ -130,7 +140,7 @@ class LupinePikoExtension(
             }
 
             override fun onScanFailed(errorCode: Int) {
-                Log.e(TAG, "onScanFailed() called with error code: $errorCode")
+                Timber.tag(TAG).e("onScanFailed() called with error code: %d", errorCode)
             }
         }
 
@@ -147,10 +157,10 @@ class LupinePikoExtension(
         }
 
         fun startLeScan(scanner: BluetoothLeScanner) {
-            Log.d(TAG, "startScan(): Bluetooth adapter is ON, starting LE scan")
+            Timber.tag(TAG).d("startScan(): Bluetooth adapter is ON, starting LE scan")
             runCatching { scanner.startScan(filters, settings, callback) }
                 .onSuccess { activeScanner = scanner }
-                .onFailure { e -> Log.e(TAG, "startScan(): Failed to start LE scan", e) }
+                .onFailure { e -> Timber.tag(TAG).e(e, "startScan(): Failed to start LE scan") }
         }
 
         scope.launch {
@@ -160,11 +170,11 @@ class LupinePikoExtension(
                     val scanner = bluetoothManager?.adapter?.takeIf { it.isEnabled }?.bluetoothLeScanner
                     when {
                         !isEnabled -> {
-                            Log.w(TAG, "startScan(): Bluetooth adapter is disabled, pausing scan")
+                            Timber.tag(TAG).w("startScan(): Bluetooth adapter is disabled, pausing scan")
                             stopActiveScan()
                         }
                         scanner == null -> {
-                            Log.w(TAG, "startScan(): Bluetooth enabled reported, but scanner is not yet available")
+                            Timber.tag(TAG).w("startScan(): Bluetooth enabled reported, but scanner is not yet available")
                         }
                         activeScanner == null -> {
                             startLeScan(scanner)
@@ -174,7 +184,7 @@ class LupinePikoExtension(
         }
 
         emitter.setCancellable {
-            Log.d(TAG, "startScan(): Scan cancelled / stopped")
+            Timber.tag(TAG).d("startScan(): Scan cancelled / stopped")
             job.cancel()
             val canStop =
                 Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
@@ -185,31 +195,57 @@ class LupinePikoExtension(
         }
     }
 
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN])
     override fun connectDevice(uid: String, emitter: Emitter<DeviceEvent>) {
-        Log.d(TAG, "connectDevice() called for uid=$uid")
-        val address = extractMacAddress(uid)
-        val bluetoothDevice = address?.let { mac ->
-            getSystemService<BluetoothManager>()?.adapter?.let { adapter ->
-                runCatching { adapter.getRemoteDevice(mac) }.getOrNull()
+        Timber.tag(TAG).d("connectDevice() called for uid=%s", uid)
+        val address = extractMacAddress(uid) ?: run {
+            Timber.tag(TAG).w("connectDevice(): could not extract MAC address from uid=%s", uid)
+            emitter.setCancellable {}
+            return
+        }
+
+        val sessionToken = Any()
+        activeConnectionToken = sessionToken
+
+        val bleManager = bleManagerFactory(address, defaultScope)
+        val commandSender: suspend (ByteArray) -> Unit = { payload -> bleManager.writeCommand(payload) }
+        gateway.setCommandSender(commandSender)
+
+        val flowCollectionJob = defaultScope.launch {
+            launch {
+                bleManager.connectionState.collect { state ->
+                    if (activeConnectionToken === sessionToken) {
+                        gateway.onConnectionChanged(state == BleConnectionState.CONNECTED)
+                    }
+                    emitter.onNext(OnConnectionStatus(state.toConnectionStatus()))
+                }
             }
-        }
-
-        val gatt = bluetoothDevice?.let { device ->
-            emitter.onNext(OnConnectionStatus(ConnectionStatus.SEARCHING))
-            connectGattDevice(device, emitter)
-        }
-
-        emitter.setCancellable {
-            Log.d(TAG, "connectDevice(): cancelled for uid=$uid")
-            gateway.onConnectionChanged(false)
-            gatt?.let { activeGatt ->
-                runCatching {
-                    activeGatt.disconnect()
-                    activeGatt.close()
+            launch {
+                bleManager.notificationsEnabled.collect {
+                    gateway.pollStatus()
+                }
+            }
+            launch {
+                bleManager.incomingData.collect { bytes ->
+                    LupinePacketCodec.decodeStatus(bytes)?.let { telemetry ->
+                        gateway.onTelemetryReceived(telemetry)
+                    }
                 }
             }
         }
+
+        emitter.setCancellable {
+            Timber.tag(TAG).d("connectDevice(): cancelled for uid=%s", uid)
+            flowCollectionJob.cancel()
+            bleManager.stop()
+            gateway.clearCommandSender(commandSender)
+            if (activeConnectionToken === sessionToken) {
+                activeConnectionToken = null
+                gateway.onConnectionChanged(false)
+            }
+        }
+
+        bleManager.start()
     }
 
     override fun onBonusAction(actionId: String) {
@@ -222,123 +258,15 @@ class LupinePikoExtension(
                 ACTION_TOGGLE_DIM -> quickDimToggleUseCase()
                 ACTION_CYCLE_MODE -> cycleLightModeUseCase()
                 ACTION_TOGGLE_POWER -> togglePowerUseCase()
-                else -> Log.w(TAG, "Unknown actionId: $actionId")
+                else -> Timber.tag(TAG).w("Unknown actionId: %s", actionId)
             }
         }
     }
 
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    private fun connectGattDevice(
-        device: BluetoothDevice,
-        emitter: Emitter<DeviceEvent>,
-    ): BluetoothGatt? {
-        val serviceUuid = UUID.fromString(LupinePacketCodec.SERVICE_LUPINE_UUID)
-        val commandUuid = UUID.fromString(LupinePacketCodec.CHAR_NOTIFY_COMMAND_UUID)
-        val dataUuid = UUID.fromString(LupinePacketCodec.CHAR_DATA_STATUS_UUID)
-        val cccdUuid = UUID.fromString(CCCD_UUID)
-
-        val gattCallback = object : BluetoothGattCallback() {
-            @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-            override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
-                when (newState) {
-                    BluetoothProfile.STATE_CONNECTED -> {
-                        gateway.onConnectionChanged(true)
-                        emitter.onNext(OnConnectionStatus(ConnectionStatus.CONNECTED))
-                        gatt.discoverServices()
-                    }
-                    BluetoothProfile.STATE_DISCONNECTED -> {
-                        gateway.onConnectionChanged(false)
-                        emitter.onNext(OnConnectionStatus(ConnectionStatus.DISCONNECTED))
-                    }
-                }
-            }
-
-            @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-            override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
-                if (status != BluetoothGatt.GATT_SUCCESS) return
-                val service = gatt.getService(serviceUuid) ?: return
-
-                service.getCharacteristic(commandUuid)?.let { commandChar ->
-                    gateway.setCommandSender { payload ->
-                        writeCharacteristicBytes(gatt, commandChar, payload)
-                    }
-                }
-
-                service.getCharacteristic(dataUuid)?.let { dataChar ->
-                    gatt.setCharacteristicNotification(dataChar, true)
-                    dataChar.getDescriptor(cccdUuid)?.let { descriptor ->
-                        writeDescriptorBytes(
-                            gatt = gatt,
-                            descriptor = descriptor,
-                            value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE,
-                        )
-                    }
-                }
-            }
-
-            override fun onCharacteristicChanged(
-                gatt: BluetoothGatt,
-                characteristic: BluetoothGattCharacteristic,
-                value: ByteArray,
-            ) {
-                if (characteristic.uuid == dataUuid) {
-                    LupinePacketCodec.decodeStatus(value)?.let { telemetry ->
-                        gateway.onTelemetryReceived(telemetry)
-                    }
-                }
-            }
-
-            @Suppress("DEPRECATION")
-            @Deprecated("Deprecated in Android 13")
-            override fun onCharacteristicChanged(
-                gatt: BluetoothGatt,
-                characteristic: BluetoothGattCharacteristic,
-            ) {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && characteristic.uuid == dataUuid) {
-                    characteristic.value?.let { bytes ->
-                        LupinePacketCodec.decodeStatus(bytes)?.let { telemetry ->
-                            gateway.onTelemetryReceived(telemetry)
-                        }
-                    }
-                }
-            }
-        }
-
-        return device.connectGatt(this, true, gattCallback, BluetoothDevice.TRANSPORT_LE)
-    }
-
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    @Suppress("DEPRECATION")
-    private fun writeCharacteristicBytes(
-        gatt: BluetoothGatt,
-        characteristic: BluetoothGattCharacteristic,
-        payload: ByteArray,
-    ) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            gatt.writeCharacteristic(
-                characteristic,
-                payload,
-                BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT,
-            )
-        } else {
-            characteristic.value = payload
-            gatt.writeCharacteristic(characteristic)
-        }
-    }
-
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    @Suppress("DEPRECATION")
-    private fun writeDescriptorBytes(
-        gatt: BluetoothGatt,
-        descriptor: BluetoothGattDescriptor,
-        value: ByteArray,
-    ) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            gatt.writeDescriptor(descriptor, value)
-        } else {
-            descriptor.value = value
-            gatt.writeDescriptor(descriptor)
-        }
+    private fun BleConnectionState.toConnectionStatus(): ConnectionStatus = when (this) {
+        BleConnectionState.CONNECTED -> ConnectionStatus.CONNECTED
+        BleConnectionState.SEARCHING -> ConnectionStatus.SEARCHING
+        BleConnectionState.DISCONNECTED -> ConnectionStatus.DISCONNECTED
     }
 
     companion object {
@@ -346,7 +274,6 @@ class LupinePikoExtension(
         private const val TAG = "PIKO_SCAN"
         private const val UID_PREFIX = "piko-"
         private const val DEFAULT_DISPLAY_NAME = "Lupine Piko"
-        private const val CCCD_UUID = "00002902-0000-1000-8000-00805F9B34FB"
 
         const val ACTION_TOGGLE_DIM = "action_toggle_dim"
         const val ACTION_CYCLE_MODE = "action_cycle_mode"

@@ -25,7 +25,7 @@ val installGitHooks = tasks.register("installGitHooks") {
 
 gradle.projectsEvaluated {
     allprojects {
-        tasks.matching { it.name in listOf("prepareKotlinIdeaImport", "checkCoverageBaseline", "preBuild") }.configureEach {
+        tasks.matching { it.name in listOf("prepareKotlinIdeaImport", "preBuild") }.configureEach {
             dependsOn(installGitHooks)
         }
     }
